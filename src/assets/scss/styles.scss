@@ -1,0 +1,15 @@
+@import "variables";
+@import "~bootstrap/scss/bootstrap";
+@import "components";
+@import "typography";
+
+body {
+    background-color: #f4f4f4;
+    font-family: $font-family-base;
+    font-weight: $font-weight-base;
+}
+
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+    font-family: $font-family-heading;
+    font-weight: $font-weight-heading;
+}

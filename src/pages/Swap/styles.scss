@@ -1,0 +1,42 @@
+@import "../../assets/scss/_variables";
+
+.card {
+    &.swap-card {
+        .form-group.token-amount {
+            .controls {
+                position: relative;
+                padding: 0;
+                border: 1px solid #eee;
+                border-radius: .25rem;
+
+                .form-control {
+                    text-align: right;
+                    padding: $size-sm;
+                    border-color: transparent;
+                    z-index: 1000;
+
+                    &:focus {
+                        box-shadow: none;
+                    }
+                }
+
+                .dropdown {
+                    position: absolute;
+                    top: 50%;
+                    left: $size-sm;
+                    transform: translateY(-50%);
+                    z-index: 1010;
+
+                    .dropdown-toggle {
+                        background-color: transparent;
+                        border-color: transparent;
+                    }
+
+                    .dropdown-menu {
+                        z-index: 1040;
+                    }
+                }
+            }
+        }
+    }
+}
