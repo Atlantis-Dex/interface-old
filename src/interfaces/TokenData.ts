@@ -5,5 +5,5 @@ export interface TokenData {
 	token?: Token,
 	balance?: BigNumber,
 	allowance?: BigNumber,
-	amount?: BigNumber
+	amount?: BigNumber // What is this?
 }

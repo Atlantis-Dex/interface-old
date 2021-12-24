@@ -1,6 +1,6 @@
 import React from "react";
 import { TokenData } from "../../interfaces/TokenData";
-import { BigNumber } from "ethers";
+import { BigNumber, ethers } from "ethers";
 import { Dropdown, DropdownButton } from "react-bootstrap";
 import { Token } from "@uniswap/sdk";
 import TOKENS from "../../data/tokens";
@@ -17,6 +17,13 @@ export default function TokenAmountInput(props: Props): JSX.Element {
 
   // TODO: Move to a token list
   const tokens = TOKENS;
+
+  const balance = token?.balance;
+  let displayVal = "0"; 
+  if (balance) {
+    displayVal = ethers.utils.formatEther(balance);
+  }
+  console.log(displayVal);
 
   return (
   	<>
@@ -70,7 +77,7 @@ export default function TokenAmountInput(props: Props): JSX.Element {
 						  amount: token?.balance
 					  }
 				  })}
-              >Max: {token.balance.toString()} {token.token?.symbol || ""}</span>
+              >Max: {displayVal} {token.token?.symbol || ""}</span>
             </p>
           )}
         </div>

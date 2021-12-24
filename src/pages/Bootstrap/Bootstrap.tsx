@@ -1,14 +1,22 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { BigNumber } from "ethers";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Modal } from "react-bootstrap";
+import { toast } from "react-toastify";
 import TokenAmountInput from "../../components/TokenAmountInput/TokenAmountInput";
 import { TokenData } from "../../interfaces/TokenData";
-import { toast } from "react-toastify";
+import { useAppSelector } from "../../hooks/stateHooks";
+import TOKENS from "../../data/tokens";
+
 
 export default function Bootstrap(): JSX.Element {
   // states
   const [inputToken, setInputToken] = useState<TokenData | null>(null);
   const [showSwapSettingsModal, setShowSwapSettingsModal] = useState<boolean>(false);
+
+  const gohmBalance = useAppSelector(state => {
+    return state.account.tokens && state.account.tokens.gohm;
+  });
 
   const approve = async () => {
     toast("Please confirm transaction");
@@ -19,6 +27,11 @@ export default function Bootstrap(): JSX.Element {
     toast("Please confirm transaction");
     console.log("...");
   };
+
+  useEffect(()=>{
+    // TODO(zx): data is split consolidate pls. 
+    setInputToken({ token:  TOKENS[0], balance: gohmBalance, allowance: BigNumber.from(420) });
+  }, [gohmBalance]);
 
   return (
     <>
