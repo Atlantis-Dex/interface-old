@@ -1,47 +1,59 @@
-import { EtherscanProvider, JsonRpcProvider, StaticJsonRpcProvider, Web3Provider } from "@ethersproject/providers";
+import { Web3Provider } from "@ethersproject/providers";
 import { createSlice, createSelector, createAsyncThunk } from "@reduxjs/toolkit";
 import { BigNumber, ethers } from "ethers";
-import { SupportedChainId } from "../constants/chains";
 import { RootState } from "./store";
-import { tokens } from "../contracts/contracts";
-import { GOHM } from "../typechain";
-
-
+import { allTokens, getTokensForChainId, protocols } from "../contracts";
+import { ITokenMap } from "../interfaces/TokenData";
+import { ERC20 } from "../typechain";
+import { ChainId } from "@uniswap/sdk";
+import { ERC20__factory } from "../typechain/factories/ERC20__factory";
 
 interface IAsyncThunk {
-    readonly chainId: SupportedChainId;
-    readonly provider: Web3Provider;
-    readonly account: string;
+  readonly chainId: ChainId;
+  readonly provider: Web3Provider;
+  readonly account: string;
 }
 
 // TODO (zx): Fix discrepency between This, interfaces/TokenData, contracts/contracts, data/tokens
-interface ITokenData {
-    [key: string]: BigNumber
-}
-
 export interface IAccountData {
-    readonly loading: boolean;
-    readonly tokens?: ITokenData;
+  readonly loading: boolean;
+  readonly tokens?: ITokenMap;
 }
 
 const initialState: IAccountData = {
-  loading: false
+  loading: false,
 };
-
 
 export const loadAccount = createAsyncThunk(
   "account/loadAccount",
   async ({ chainId, provider, account }: IAsyncThunk) => {
-    console.log("getting account data");
+    const tokens = getTokensForChainId(chainId, allTokens);
+    if (tokens.length == 0) return { tokens: {} };
 
-    const gOhmContract = new ethers.Contract(tokens.gOHM[chainId], tokens.gOHM.abi, provider) as GOHM;
-    const gOHMBalance = await gOhmContract.balanceOf(account);
-    
-    return { tokens: { "gohm": gOHMBalance } };
+    const tokenPromises = tokens.map(async token => {
+      const tokenContract = new ethers.Contract(token.address, ERC20__factory.abi, provider) as ERC20;
+      const balance = await tokenContract.balanceOf(account);
+      // Uncomment after wiring up protocol
+      // const allowance = tokenContract.allowance(account, protocols.atlantisSwap[chainId]);
+      const allowance = BigNumber.from(420);
+      return { token, balance, allowance };
+    });
+    const tokenData = await Promise.all(tokenPromises);
+
+    let tokenState: ITokenMap = {};
+    tokenData.forEach(token => {
+      if (!token.token.symbol) return;
+      tokenState[token.token.symbol] = token;
+    });
+
+    return { tokens: tokenState };
   },
 );
 
-  
+// Load app
+// Load mainnet addresses
+// load balances
+
 const accountSlice = createSlice({
   name: "account",
   initialState,
@@ -56,21 +68,17 @@ const accountSlice = createSlice({
         state.loading = true;
       })
       .addCase(loadAccount.fulfilled, (state, action) => {
-        state.tokens = action.payload.tokens;
+        state.tokens = action?.payload.tokens;
         state.loading = false;
       })
       .addCase(loadAccount.rejected, (state, { error }) => {
         state.loading = false;
         console.error(error.name, error.message, error.stack);
       });
-
   },
 });
 
-  
 const baseInfo = (state: RootState) => state.account;
 export const getAccountState = createSelector(baseInfo, account => account);
 export const { reducer } = accountSlice;
 export const { fetchAccountSuccess } = accountSlice.actions;
-  
-  
