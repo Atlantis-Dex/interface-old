@@ -1,12 +1,11 @@
 import { Web3Provider } from "@ethersproject/providers";
+import { ChainId } from "@uniswap/sdk";
 import { createSlice, createSelector, createAsyncThunk } from "@reduxjs/toolkit";
 import { BigNumber, ethers } from "ethers";
 import { RootState } from "./store";
-import { allTokens, getTokensForChainId, protocols } from "../contracts";
-import { ITokenMap } from "../interfaces/TokenData";
-import { ERC20 } from "../typechain";
-import { ChainId } from "@uniswap/sdk";
-import { ERC20__factory } from "../typechain/factories/ERC20__factory";
+import { allTokens, getTokensForChainId } from "../contracts";
+import { ITokenData, ITokenMap } from "../interfaces/TokenData";
+import { ERC20, ERC20__factory } from "../typechain";
 
 interface IAsyncThunk {
   readonly chainId: ChainId;
@@ -28,22 +27,29 @@ export const loadAccount = createAsyncThunk(
   "account/loadAccount",
   async ({ chainId, provider, account }: IAsyncThunk) => {
     const tokens = getTokensForChainId(chainId, allTokens);
-    if (tokens.length == 0) return { tokens: {} };
+    if (tokens.length == 0) return { tokens: new Map<String, ITokenData>() };
 
     const tokenPromises = tokens.map(async token => {
+      // Get balance & Allownance for token
       const tokenContract = new ethers.Contract(token.address, ERC20__factory.abi, provider) as ERC20;
       const balance = await tokenContract.balanceOf(account);
       // Uncomment after wiring up protocol
       // const allowance = tokenContract.allowance(account, protocols.atlantisSwap[chainId]);
       const allowance = BigNumber.from(420);
-      return { token, balance, allowance };
+
+      // Set the tokenData
+      const tokenData: ITokenData = token;
+      tokenData.balance = balance;
+      tokenData.allowance = allowance;
+      return tokenData;
     });
     const tokenData = await Promise.all(tokenPromises);
 
-    let tokenState: ITokenMap = {};
+    let tokenState: ITokenMap = new Map<String, ITokenData>();
     tokenData.forEach(token => {
-      if (!token.token.symbol) return;
-      tokenState[token.token.symbol] = token;
+      if (!token.symbol) return;
+
+      tokenState.set(token.symbol, token);
     });
 
     return { tokens: tokenState };

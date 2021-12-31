@@ -1,9 +1,5 @@
 import React, { useEffect } from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route
-} from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useWeb3React } from "@web3-react/core";
 import { StaticJsonRpcProvider, Web3Provider } from "@ethersproject/providers";
 
@@ -31,20 +27,19 @@ export default function App(): JSX.Element {
   const dispatch = useDispatch();
   const { chainId, account, active, library } = useWeb3React();
 
-  useEffect( () => {
+  useEffect(() => {
     if (!chainId) return;
-    if (!library) return; 
-    const castedLibrary = library as Web3Provider;;
+    if (!library) return;
+    const castedLibrary = library as Web3Provider;
 
-    dispatch(loadApp({ chainId , provider: castedLibrary }));
+    dispatch(loadApp({ chainId, provider: castedLibrary }));
   }, []);
 
-
-  useEffect( () => {
+  useEffect(() => {
     if (!chainId) return;
-    if (!account) return;  
-    if (!active) return; 
-    const castedLibrary = library as Web3Provider;;
+    if (!account) return;
+    if (!active) return;
+    const castedLibrary = library as Web3Provider;
 
     dispatch(loadAccount({ chainId, provider: castedLibrary, account }));
   }, [active]);

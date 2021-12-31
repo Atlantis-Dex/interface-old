@@ -1,20 +1,30 @@
 import React, { useEffect, useState } from "react";
-import { BigNumber } from "ethers";
+import { BigNumber, utils } from "ethers";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Modal } from "react-bootstrap";
 import { toast } from "react-toastify";
 import TokenAmountInput from "../../components/TokenAmountInput/TokenAmountInput";
 import { ITokenData } from "../../interfaces/TokenData";
 import { useAppSelector } from "../../hooks";
+import { tokenName_gohm } from "../../contracts";
 
 export default function Bootstrap(): JSX.Element {
   // states
   const [inputToken, setInputToken] = useState<ITokenData | null>(null);
+  const [amount, setAmount] = useState<BigNumber>(BigNumber.from(0));
   const [showSwapSettingsModal, setShowSwapSettingsModal] = useState<boolean>(false);
+  const tokens = useAppSelector(state => state.account.tokens);
 
-  const gohm = useAppSelector(state => {
-    return state.account.tokens && state.account.tokens.gOHM;
-  });
+  // on Load
+  useEffect(() => {
+    // Set initial selected token
+    if (!tokens) return;
+    if (tokens.size == 0) return;
+    const gohm = tokens.get(tokenName_gohm);
+    if (!gohm) return;
+
+    setInputToken(gohm);
+  }, []);
 
   const approve = async () => {
     toast("Please confirm transaction");
@@ -25,13 +35,6 @@ export default function Bootstrap(): JSX.Element {
     toast("Please confirm transaction");
     console.log("...");
   };
-
-  useEffect(() => {
-    if (!gohm) return;
-    console.log("gohm", gohm);
-
-    setInputToken({ token: gohm.token, balance: gohm?.balance, allowance: gohm?.allowance });
-  }, []);
 
   return (
     <>
@@ -56,10 +59,7 @@ export default function Bootstrap(): JSX.Element {
             </div>
             <div className="list-group list-group-flush">
               <div className="list-group-item py-3">
-                <TokenAmountInput
-                  token={inputToken}
-                  setToken={(newToken: ITokenData | null) => setInputToken(newToken)}
-                />
+                <TokenAmountInput token={inputToken} setToken={setInputToken} setAmount={setAmount} amount={amount} />
               </div>
               <div className="list-group-item small">
                 <div className="row">
@@ -72,7 +72,7 @@ export default function Bootstrap(): JSX.Element {
               <div className="row">
                 <div className="col-lg-6">
                   <button
-                    disabled={(inputToken?.allowance || 0) != 0 && inputToken?.allowance?.gte(inputToken?.amount || 0)}
+                    disabled={(inputToken?.allowance || 0) != 0 && inputToken?.allowance?.gte(amount)}
                     onClick={event => {
                       event.currentTarget.blur();
 
@@ -88,8 +88,7 @@ export default function Bootstrap(): JSX.Element {
                 <div className="col-lg-6">
                   <button
                     disabled={
-                      (inputToken?.allowance || 0) === 0 ||
-                      (inputToken?.allowance && inputToken?.allowance.lt(inputToken?.amount || 0))
+                      (inputToken?.allowance || 0) === 0 || (inputToken?.allowance && inputToken?.allowance.lt(amount))
                     }
                     onClick={event => {
                       event.currentTarget.blur();
