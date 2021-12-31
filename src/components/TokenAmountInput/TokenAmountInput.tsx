@@ -1,76 +1,84 @@
 import React from "react";
-import { TokenData } from "../../interfaces/TokenData";
-import { BigNumber } from "ethers";
+import { BigNumber, ethers } from "ethers";
 import { Dropdown, DropdownButton } from "react-bootstrap";
-import { Token } from "@uniswap/sdk";
-import TOKENS from "../../data/tokens";
+import { ITokenData } from "../../interfaces/TokenData";
+import { useAppSelector } from "../../hooks";
 
 interface Props {
-  token: TokenData | null
-  setToken(token: TokenData | null): void
-  placeholder?: string
+  token: ITokenData | null;
+  setToken(token: ITokenData | null): void;
+  amount: BigNumber;
+  setAmount(amount: BigNumber): void; // temporary state for value
+  placeholder?: string;
 }
 
 export default function TokenAmountInput(props: Props): JSX.Element {
+  // State
+  const { token, setToken, amount, setAmount, placeholder } = props;
+  const tokens = useAppSelector(state => state.account.tokens);
 
-  const { token, setToken, placeholder } = props;
+  // State Mutators
+  const _setAmount = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.value.length) return;
 
-  // TODO: Move to a token list
-  const tokens = TOKENS;
+    let bigNumberAmount = ethers.utils.parseEther(event.target.value);
+    if (bigNumberAmount.lte(0)) {
+      bigNumberAmount = BigNumber.from(0);
+    }
+    setAmount(bigNumberAmount);
+  };
+
+  const _setMax = () => {
+    if (!token) return;
+    if (!token.balance) return;
+    setAmount(token.balance);
+  };
+
+  const _setToken = (newToken: ITokenData) => {
+    return function (event: React.MouseEvent<HTMLElement, MouseEvent>) {
+      event.currentTarget.blur();
+      event.preventDefault();
+
+      setToken(newToken);
+    };
+  };
+
+  const balance = token?.balance;
+  let displayBalance = "0";
+  if (balance) {
+    displayBalance = ethers.utils.formatEther(balance).substring(0, 5);
+  }
+
+  const displayAmount = ethers.utils.formatEther(amount);
 
   return (
-  	<>
+    <>
       <div className="token-amount form-group">
         <div className="controls">
-          <div
-            className="input-group"
-          >
+          <div className="input-group">
             <input
-              type="text"
+              type="number"
               id={"inputAmount"}
               placeholder={placeholder || "0"}
-              onChange={(event) => {
-                setToken({
-                  ...token,
-                  ...{
-                    amount: event.target.value.length ? BigNumber.from(event.target.value) : undefined,
-                  }
-                });
-              }}
+              onChange={_setAmount}
               className="form-control"
+              value={displayAmount}
             />
-            <DropdownButton
-              title={(token?.token?.symbol || "Select")}
-              variant={"light"}
-            >
-              {tokens.map((tokenItem: Token, index: number) => (
-                <Dropdown.Item
-                  key={index}
-                  onClick={(event) => {
-                    event.currentTarget.blur();
-                    event.preventDefault();
-
-                    setToken({
-                      ...token,
-                      ...{
-                        token: tokenItem
-                      }
-                    });
-                  }}
-                >{tokenItem.symbol}</Dropdown.Item>
-              ))}
+            <DropdownButton title={token?.symbol || "Select"} variant={"light"}>
+              {!tokens && <Dropdown.Header>Connect your wallet</Dropdown.Header>}
+              {tokens &&
+                Array.from(tokens.values()).map((tokenItem: ITokenData, index: number) => (
+                  <Dropdown.Item key={index} onClick={_setToken(tokenItem)}>
+                    {tokenItem && tokenItem.symbol}
+                  </Dropdown.Item>
+                ))}
             </DropdownButton>
           </div>
           {token?.balance && (
             <p className="max-input text-end small">
-              <span
-				  onClick={(event) => ({
-					  ...token,
-					  ...{
-						  amount: token?.balance
-					  }
-				  })}
-              >Max: {token.balance.toString()} {token.token?.symbol || ""}</span>
+              <span onClick={_setMax}>
+                Max: {displayBalance} {token?.symbol || ""}
+              </span>
             </p>
           )}
         </div>

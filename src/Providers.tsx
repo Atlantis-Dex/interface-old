@@ -1,7 +1,9 @@
 import React from "react";
 import { Web3ReactProvider } from "@web3-react/core";
+import { Provider } from "react-redux";
 import { Web3Provider } from "@ethersproject/providers";
 import { POLLING_INTERVAL } from "./constants/connectors";
+import store from "./state/store";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getLibrary(provider: any): Web3Provider {
@@ -17,7 +19,11 @@ interface Props {
 export default function Providers(props: Props): JSX.Element {
   return (
     <>
-      <Web3ReactProvider getLibrary={getLibrary}>{props?.children}</Web3ReactProvider>
+      <Web3ReactProvider getLibrary={getLibrary}>
+        <Provider store={store}>
+          {props?.children}
+        </Provider>
+      </Web3ReactProvider>
     </>
   );
 }

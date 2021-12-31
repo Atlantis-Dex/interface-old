@@ -1,48 +1,53 @@
 import React, { useEffect, useState } from "react";
 import { useWeb3React } from "@web3-react/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import TOKENS from "../../data/tokens";
 import { Modal } from "react-bootstrap";
 import TokenAmountInput from "../../components/TokenAmountInput/TokenAmountInput";
-import { TokenData } from "../../interfaces/TokenData";
+import { ITokenData } from "../../interfaces/TokenData";
+import { useAppSelector } from "../../hooks";
 
 import "./styles.scss";
 import { toast } from "react-toastify";
+import { BigNumber } from "ethers";
 
 export default function Swap(): JSX.Element {
   const { account } = useWeb3React();
 
   // states
-  const [inputToken, setInputToken] = useState<TokenData | null>(null);
-  const [outputToken, setOutputToken] = useState<TokenData | null>(null);
+  const [inputToken, setInputToken] = useState<ITokenData | null>(null);
+  const [outputToken, setOutputToken] = useState<ITokenData | null>(null);
+  const [inputAmount, setInputAmount] = useState<BigNumber>(BigNumber.from(0));
+  const [outputAmount, setOutputAmount] = useState<BigNumber>(BigNumber.from(0));
 
   // swap settings
   const [showSwapSettingsModal, setShowSwapSettingsModal] = useState<boolean>(false);
   const [slippage, setSlippage] = useState<number>(0.005);
 
   // TODO: Move to a token list
-  const tokens = TOKENS;
+  const tokens = useAppSelector(state => state.account.tokens);
 
+  // Effects
   useEffect(() => {
-    if (account && inputToken?.token?.address) {
+    if (account && inputToken?.address) {
       // TODO: set balance and allowance
       console.log("set balance and allowance of inputToken");
     }
-  }, [account, inputToken?.token?.address]);
+  }, [account, inputToken?.address]);
 
   useEffect(() => {
-    if (account && outputToken?.token?.address) {
+    if (account && outputToken?.address) {
       // TODO: set balance and allowance
       console.log("set balance and allowance of outputToken");
     }
-  }, [account, outputToken?.token?.address]);
+  }, [account, outputToken?.address]);
 
   useEffect(() => {
-    if (inputToken?.token?.address == outputToken?.token?.address) {
+    if (inputToken?.address == outputToken?.address) {
       reverse();
     }
-  }, [inputToken?.token?.address, outputToken?.token?.address]);
+  }, [inputToken?.address, outputToken?.address]);
 
+  // Mutators
   const reverse = () => {
     const prevInput = inputToken;
 
@@ -71,7 +76,7 @@ export default function Swap(): JSX.Element {
                 <div className="col-lg-6 text-end">
                   <button
                     type={"button"}
-                    onClick={(event) => {
+                    onClick={event => {
                       event.currentTarget.blur();
                       setShowSwapSettingsModal(true);
                     }}
@@ -86,20 +91,15 @@ export default function Swap(): JSX.Element {
               <div className="list-group-item py-3">
                 <TokenAmountInput
                   token={inputToken}
-                  setToken={(newToken: TokenData | null) => {
-                    if (newToken?.token?.address === outputToken?.token?.address) {
-                      reverse();
-                    } else {
-                      setInputToken(newToken);
-                    }
-                  }}
+                  setToken={setInputToken}
+                  setAmount={setInputAmount}
+                  amount={inputAmount}
                 />
                 <div className="text-center">
                   <button
                     type={"button"}
-                    onClick={(event) => {
+                    onClick={event => {
                       event.currentTarget.blur();
-
                       reverse();
                     }}
                     className="btn btn-light bg-transparent border-0"
@@ -109,31 +109,19 @@ export default function Swap(): JSX.Element {
                 </div>
                 <TokenAmountInput
                   token={outputToken}
-                  setToken={(newToken: TokenData | null) => {
-                    if (newToken?.token?.address === inputToken?.token?.address) {
-                      reverse();
-                    } else {
-                      setOutputToken(newToken);
-                    }
-                  }}
+                  setToken={setOutputToken}
+                  setAmount={setOutputAmount}
+                  amount={outputAmount}
                 />
               </div>
               <div className="list-group-item small">
                 <div className="row">
-                  <div className="col-md-6">
-                    Slippage Fee
-                  </div>
-                  <div className="col-md-6 text-end">
-                    {slippage*100} %
-                  </div>
+                  <div className="col-md-6">Slippage Fee</div>
+                  <div className="col-md-6 text-end">{slippage * 100} %</div>
                 </div>
                 <div className="row">
-                  <div className="col-md-6">
-                    Min. you receive
-                  </div>
-                  <div className="col-md-6 text-end">
-                    100,000
-                  </div>
+                  <div className="col-md-6">Min. you receive</div>
+                  <div className="col-md-6 text-end">100,000</div>
                 </div>
               </div>
             </div>
@@ -141,27 +129,31 @@ export default function Swap(): JSX.Element {
               <div className="row">
                 <div className="col-lg-6">
                   <button
-                    disabled={(inputToken?.allowance || 0) != 0 && (inputToken?.allowance?.gte(inputToken?.amount || 0))}
-                    onClick={(event) => {
+                    disabled={(inputToken?.allowance || 0) != 0 && inputToken?.allowance?.gte(inputAmount)}
+                    onClick={event => {
                       event.currentTarget.blur();
-
                       console.log("approve...");
-
                       approve();
                     }}
                     className={"btn btn-success btn-block"}
-                  >Approve</button>
+                  >
+                    Approve
+                  </button>
                 </div>
                 <div className="col-lg-6">
                   <button
-                    disabled={(inputToken?.allowance || 0) === 0 || (inputToken?.allowance && inputToken?.allowance.lt(inputToken?.amount || 0))}
-                    onClick={(event) => {
+                    disabled={
+                      (inputToken?.allowance || 0) === 0 ||
+                      (inputToken?.allowance && inputToken?.allowance.lt(inputAmount))
+                    }
+                    onClick={event => {
                       event.currentTarget.blur();
-
                       swap();
                     }}
                     className="btn btn-success btn-block"
-                  >Swap</button>
+                  >
+                    Swap
+                  </button>
                 </div>
               </div>
             </div>
@@ -169,8 +161,8 @@ export default function Swap(): JSX.Element {
           <div className="card mt-5">
             <div className="card-body">
               <p className="fw-bold">Swap details:</p>
-              <p>Input token: {inputToken?.token?.address}</p>
-              <p>Output token: {outputToken?.token?.address}</p>
+              <p>Input token: {inputToken?.address}</p>
+              <p>Output token: {outputToken?.address}</p>
             </div>
           </div>
         </div>
@@ -186,24 +178,32 @@ export default function Swap(): JSX.Element {
               <div className="input-group mb-3">
                 <button
                   type="button"
-                  onClick={() => setSlippage(.005)}
-                  className={"btn "+(slippage === .005 ? "btn-secondary" : "btn-outline-secondary")}
-                >.5 %</button>
+                  onClick={() => setSlippage(0.005)}
+                  className={"btn " + (slippage === 0.005 ? "btn-secondary" : "btn-outline-secondary")}
+                >
+                  .5 %
+                </button>
                 <button
                   type="button"
                   onClick={() => setSlippage(0.01)}
-                  className={"btn "+(slippage === 0.01 ? "btn-secondary" : "btn-outline-secondary")}
-                >1 %</button>
+                  className={"btn " + (slippage === 0.01 ? "btn-secondary" : "btn-outline-secondary")}
+                >
+                  1 %
+                </button>
                 <button
                   type="button"
-                  onClick={() => setSlippage(.02)}
-                  className={"btn "+(slippage === .02 ? "btn-secondary" : "btn-outline-secondary")}
-                >2 %</button>
+                  onClick={() => setSlippage(0.02)}
+                  className={"btn " + (slippage === 0.02 ? "btn-secondary" : "btn-outline-secondary")}
+                >
+                  2 %
+                </button>
                 <div className="input-group">
                   <input
                     type="text"
                     value={slippage}
-                    onChange={event => setSlippage(isNaN(Number(event.currentTarget.value)) ? 0.05 : Number(event.currentTarget.value))}
+                    onChange={event =>
+                      setSlippage(isNaN(Number(event.currentTarget.value)) ? 0.05 : Number(event.currentTarget.value))
+                    }
                     className="form-control"
                   />
                   <span className="input-group-text">%</span>
@@ -213,16 +213,12 @@ export default function Swap(): JSX.Element {
           </div>
         </Modal.Body>
         <Modal.Footer>
-          <button
-            type={"button"}
-            onClick={() => setShowSwapSettingsModal(false)}
-            className={"btn btn-secondary"}
-          >Close</button>
-          <button
-            type={"button"}
-            onClick={() => setShowSwapSettingsModal(false)}
-            className={"btn btn-primary"}
-          >Save Changes</button>
+          <button type={"button"} onClick={() => setShowSwapSettingsModal(false)} className={"btn btn-secondary"}>
+            Close
+          </button>
+          <button type={"button"} onClick={() => setShowSwapSettingsModal(false)} className={"btn btn-primary"}>
+            Save Changes
+          </button>
         </Modal.Footer>
       </Modal>
     </>

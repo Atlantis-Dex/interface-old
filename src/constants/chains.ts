@@ -1,6 +1,8 @@
+import { ChainId } from "@uniswap/sdk";
+
 export enum SupportedChainId {
-  MAINNET = 1,
-  RINKEBY = 4,
+  MAINNET = ChainId.MAINNET,
+  RINKEBY = ChainId.RINKEBY,
 }
 
 export const connectorConfig = {

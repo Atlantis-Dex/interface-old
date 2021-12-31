@@ -1,9 +1,8 @@
 import { Token } from "@uniswap/sdk";
 import { BigNumber } from "ethers";
-
-export interface TokenData {
-	token?: Token,
-	balance?: BigNumber,
-	allowance?: BigNumber,
-	amount?: BigNumber
+export interface ITokenData extends Token {
+  balance?: BigNumber;
+  allowance?: BigNumber;
 }
+
+export interface ITokenMap extends Map<String, ITokenData> {}
